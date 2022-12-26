@@ -1,30 +1,84 @@
 <template>
-  <nav>
-    <router-link to="/">Home</router-link> |
-    <router-link to="/about">About</router-link>
-  </nav>
-  <router-view/>
+  <div class="app">
+    <h1>Post Page</h1>
+    <MyButton
+        @click="showDialog"
+    >
+      Create Post
+    </MyButton>
+    <MyDialog v-model:isShow="isShowDialog">
+      <PostForm
+          @createPost="createPost"
+      />
+    </MyDialog>
+    <PostList
+        :posts="posts"
+        @deletePost="deletePost"
+        v-if="!isPostsLoading"
+    />
+    <div v-else>Loading</div>
+  </div>
 </template>
 
+<script>
+import axios from 'axios';
+
+//Components
+import PostForm from "@/components/PostForm";
+import PostList from "@/components/PostList";
+import MyButton from "@/components/UI/MyButton";
+//Components
+
+export default {
+  components: {
+    MyButton,
+    PostList,
+    PostForm
+  },
+  data () {
+    return {
+      posts: [],
+      isShowDialog: false,
+      isPostsLoading: false
+    }
+  },
+  methods: {
+    createPost (newPost) {
+      this.posts.push(newPost);
+      this.isShowDialog = false;
+    },
+    deletePost (postToDelete) {
+      this.posts = this.posts.filter(p => p.id !== postToDelete.id);
+    },
+    showDialog () {
+      this.isShowDialog = true;
+    },
+    async fetchPosts () {
+      try {
+        this.isPostsLoading = true;
+        const { data } = await axios.get('https://jsonplaceholder.typicode.com/posts?_limit=10');
+        this.posts = data;
+      } catch (e) {
+        alert('Error');
+      } finally {
+        this.isPostsLoading = false;
+      }
+    }
+  },
+  mounted () {
+    this.fetchPosts();
+  }
+}
+</script>
+
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-nav {
-  padding: 30px;
-}
-
-nav a {
-  font-weight: bold;
-  color: #2c3e50;
-}
-
-nav a.router-link-exact-active {
-  color: #42b983;
+.app {
+  padding: 20px;
 }
 </style>
