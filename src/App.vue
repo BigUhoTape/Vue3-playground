@@ -1,18 +1,24 @@
 <template>
   <div class="app">
     <h1>Post Page</h1>
-    <MyButton
-        @click="showDialog"
-    >
-      Create Post
-    </MyButton>
+    <div class="app__btns">
+      <MyButton
+          @click="showDialog"
+      >
+        Create Post
+      </MyButton>
+      <MySelect
+        v-model="selectedSort"
+        :options="sortOptions"
+      />
+    </div>
     <MyDialog v-model:isShow="isShowDialog">
       <PostForm
           @createPost="createPost"
       />
     </MyDialog>
     <PostList
-        :posts="posts"
+        :posts="sortedPosts"
         @deletePost="deletePost"
         v-if="!isPostsLoading"
     />
@@ -27,10 +33,12 @@ import axios from 'axios';
 import PostForm from "@/components/PostForm";
 import PostList from "@/components/PostList";
 import MyButton from "@/components/UI/MyButton";
+import MySelect from "@/components/UI/MySelect";
 //Components
 
 export default {
   components: {
+    MySelect,
     MyButton,
     PostList,
     PostForm
@@ -39,7 +47,12 @@ export default {
     return {
       posts: [],
       isShowDialog: false,
-      isPostsLoading: false
+      isPostsLoading: false,
+      selectedSort: 'title',
+      sortOptions: [
+        {value: 'title', name: 'By Title'},
+        {value: 'body', name: 'By Body'},
+      ]
     }
   },
   methods: {
@@ -67,7 +80,17 @@ export default {
   },
   mounted () {
     this.fetchPosts();
-  }
+  },
+  computed: {
+    sortedPosts () {
+      return [...this.posts].sort((post1, post2) =>  post1[this.selectedSort]?.localeCompare(post2[this.selectedSort]));
+    }
+  },
+  // watch: {
+  //   selectedSort (newValue) {
+  //     this.posts.sort((post1, post2) =>  post1[newValue]?.localeCompare(post2[newValue]));
+  //   }
+  // }
 }
 </script>
 
@@ -80,5 +103,11 @@ export default {
 
 .app {
   padding: 20px;
+}
+
+.app__btns {
+  display: flex;
+  justify-content: space-between;
+  margin: 15px 0;
 }
 </style>
