@@ -1,6 +1,10 @@
 <template>
   <div class="app">
     <h1>Post Page</h1>
+    <MyInput
+      v-model="searchQuery"
+      placeholder="Search"
+    />
     <div class="app__btns">
       <MyButton
           @click="showDialog"
@@ -18,11 +22,25 @@
       />
     </MyDialog>
     <PostList
-        :posts="sortedPosts"
+        :posts="sortedAndSearchedPosts"
         @deletePost="deletePost"
         v-if="!isPostsLoading"
     />
     <div v-else>Loading</div>
+    <div ref="observer" class="observer"></div>
+<!--    <div class="page__wrapper">-->
+<!--      <div-->
+<!--        v-for="pageNumber in totalPages"-->
+<!--        :key="pageNumber"-->
+<!--        class="page"-->
+<!--        :class="{-->
+<!--          'current-page': page === pageNumber-->
+<!--        }"-->
+<!--        @click="changePage(pageNumber)"-->
+<!--      >-->
+<!--        {{ pageNumber }}-->
+<!--      </div>-->
+<!--    </div>-->
   </div>
 </template>
 
@@ -34,10 +52,12 @@ import PostForm from "@/components/PostForm";
 import PostList from "@/components/PostList";
 import MyButton from "@/components/UI/MyButton";
 import MySelect from "@/components/UI/MySelect";
+import MyInput from "@/components/UI/MyInput";
 //Components
 
 export default {
   components: {
+    MyInput,
     MySelect,
     MyButton,
     PostList,
@@ -52,7 +72,11 @@ export default {
       sortOptions: [
         {value: 'title', name: 'By Title'},
         {value: 'body', name: 'By Body'},
-      ]
+      ],
+      searchQuery: '',
+      page: 1,
+      limit: 10,
+      totalPages: 0
     }
   },
   methods: {
@@ -69,28 +93,63 @@ export default {
     async fetchPosts () {
       try {
         this.isPostsLoading = true;
-        const { data } = await axios.get('https://jsonplaceholder.typicode.com/posts?_limit=10');
+        const { data, headers } = await axios.get('https://jsonplaceholder.typicode.com/posts', {
+          params: {
+            _page: this.page,
+            _limit: this.limit
+          }
+        });
+        this.totalPages = Math.ceil(headers['x-total-count'] / this.limit);
         this.posts = data;
       } catch (e) {
         alert('Error');
       } finally {
         this.isPostsLoading = false;
       }
-    }
+    },
+    async loadingMorePosts () {
+      try {
+        this.page += 1;
+        const { data, headers } = await axios.get('https://jsonplaceholder.typicode.com/posts', {
+          params: {
+            _page: this.page,
+            _limit: this.limit
+          }
+        });
+        this.totalPages = Math.ceil(headers['x-total-count'] / this.limit);
+        this.posts = [...this.posts, ...data];
+      } catch (e) {
+        alert('Error');
+      }
+    },
+    // async changePage (page) {
+    //   this.page = page;
+    //   await this.fetchPosts();
+    // }
   },
   mounted () {
     this.fetchPosts();
+
+    const options = {
+      rootMargin: '0px',
+      threshold: 1.0
+    };
+    const callback = (entries, observer) => {
+      if (entries[0].isIntersecting && this.page < this.totalPages) {
+        this.loadingMorePosts();
+      }
+    }
+    const observer = new IntersectionObserver(callback, options);
+    observer.observe(this.$refs.observer);
   },
   computed: {
     sortedPosts () {
       return [...this.posts].sort((post1, post2) =>  post1[this.selectedSort]?.localeCompare(post2[this.selectedSort]));
+    },
+    sortedAndSearchedPosts () {
+      return this.sortedPosts.filter(post => post.title.toLowerCase().includes(this.searchQuery.toLowerCase()));
     }
   },
-  // watch: {
-  //   selectedSort (newValue) {
-  //     this.posts.sort((post1, post2) =>  post1[newValue]?.localeCompare(post2[newValue]));
-  //   }
-  // }
 }
 </script>
 
@@ -109,5 +168,27 @@ export default {
   display: flex;
   justify-content: space-between;
   margin: 15px 0;
+}
+
+.page__wrapper {
+  display: flex;
+  margin-top: 15px;
+}
+
+.page {
+  border: 1px solid black;
+  padding: 10px;
+  transition: .4s;
+  cursor: pointer;
+}
+.current-page {
+  border: 2px solid teal;
+  background: teal;
+  color: white;
+  transition: .4s;
+}
+
+.observer {
+  height: 30px;
 }
 </style>
