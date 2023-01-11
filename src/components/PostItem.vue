@@ -8,6 +8,11 @@
 
     <div class="post__btns">
       <MyButton
+          @click="$router.push(`/posts/${post.id}`)"
+      >
+        Open
+      </MyButton>
+      <MyButton
         @click="$emit('deletePost', post)"
       >
         Delete
@@ -41,6 +46,6 @@ export default {
 }
 
 .post__btns {
-
+  display: flex;
 }
 </style>
